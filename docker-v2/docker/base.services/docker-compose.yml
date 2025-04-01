@@ -1,0 +1,54 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: 'no'
+    environment:
+      MYSQL_ROOT_PASSWORD: Secret@12345
+    ports:
+      - "3306:3306"
+    networks:
+      - docker-net
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+  phpmyadmin:
+      image: phpmyadmin/phpmyadmin
+      container_name: phpmyadmin
+      restart: always
+      ports:
+        - "9090:80"
+      environment:
+        PMA_HOST: db
+        PMA_ARBITRARY: 1
+        UPLOAD_LIMIT: 100M
+      networks:
+        - docker-net
+  reverse-proxy:
+    image: traefik
+    container_name: traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    restart: always
+    ports:
+      - "80:80"
+      - "8080:8080"
+    networks:
+      - docker-net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  nodejs:
+    image: node:20-alpine
+    container_name: node
+    stdin_open: true
+    ports:
+      - "3000:3000"
+    networks:
+      - docker-net
+    volumes:
+      - /home/carlos/:/app
+networks:
+  docker-net:
